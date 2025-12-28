@@ -1,8 +1,8 @@
-"""create tables games, reviews, users
+"""initial migration with auth and constraints
 
-Revision ID: 57881204f4e6
+Revision ID: a5cba295faf1
 Revises: 
-Create Date: 2022-09-12 11:38:12.948877
+Create Date: 2025-12-28 22:08:59.001713
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '57881204f4e6'
+revision = 'a5cba295faf1'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -24,29 +24,26 @@ def upgrade():
     sa.Column('genre', sa.String(), nullable=True),
     sa.Column('platform', sa.String(), nullable=True),
     sa.Column('price', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('title')
     )
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('id')
+    sa.Column('name', sa.String(), nullable=False),
+    sa.Column('_password_hash', sa.String(), nullable=True),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
     )
     op.create_table('reviews',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('score', sa.Integer(), nullable=True),
     sa.Column('comment', sa.String(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('game_id', sa.Integer(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['game_id'], ['games.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['game_id'], ['games.id'], name=op.f('fk_reviews_game_id_games')),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_reviews_user_id_users')),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'game_id', name='uq_user_game')
     )
     # ### end Alembic commands ###
 

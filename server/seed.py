@@ -1,110 +1,60 @@
 #!/usr/bin/env python3
-
+# server/seed.py
 from random import randint, choice as rc
-
 from faker import Faker
-
 from app import app
 from models import db, Game, Review, User
-
-genres = [
-    "Platformer",
-    "Shooter",
-    "Fighting",
-    "Stealth",
-    "Survival",
-    "Rhythm",
-    "Survival Horror",
-    "Metroidvania",
-    "Text-Based",
-    "Visual Novel",
-    "Tile-Matching",
-    "Puzzle",
-    "Action RPG",
-    "MMORPG",
-    "Tactical RPG",
-    "JRPG",
-    "Life Simulator",
-    "Vehicle Simulator",
-    "Tower Defense",
-    "Turn-Based Strategy",
-    "Racing",
-    "Sports",
-    "Party",
-    "Trivia",
-    "Sandbox"
-]
-
-platforms = [
-    "NES",
-    "SNES",
-    "Nintendo 64",
-    "GameCube",
-    "Wii",
-    "Wii U",
-    "Nintendo Switch",
-    "GameBoy",
-    "GameBoy Advance",
-    "Nintendo DS",
-    "Nintendo 3DS",
-    "XBox",
-    "XBox 360",
-    "XBox One",
-    "XBox Series X/S",
-    "PlayStation",
-    "PlayStation 2",
-    "PlayStation 3",
-    "PlayStation 4",
-    "PlayStation 5",
-    "PSP",
-    "PS Vita",
-    "Genesis",
-    "DreamCast",
-    "PC",
-]
 
 fake = Faker()
 
 with app.app_context():
-
+    print("Clearing database...")
     Review.query.delete()
     User.query.delete()
     Game.query.delete()
 
+    print("Seeding users...")
     users = []
-    for i in range(100):
-        u = User(name=fake.name(),)
-        users.append(u)
+    # Create a test user we know the password for
+    test_user = User(name="Raphie")
+    test_user.password_hash = "password123"
+    users.append(test_user)
 
+    for i in range(10):
+        u = User(name=fake.name())
+        # All fake users get the same password for easy testing
+        u.password_hash = "password123"
+        users.append(u)
     db.session.add_all(users)
 
+    print("Seeding games...")
     games = []
-    for i in range(100):
+    for i in range(20):
         g = Game(
-            title=fake.sentence(),
-            genre=rc(genres),
-            platform=rc(platforms),
-            price=randint(5, 60),
+            title=fake.unique.sentence(nb_words=3),
+            genre=rc(["RPG", "Action", "Indie", "Strategy"]),
+            platform=rc(["PC", "PS5", "Switch"]),
+            price=randint(10, 60)
         )
         games.append(g)
-
     db.session.add_all(games)
 
-    reviews = []
+    print("Seeding reviews...")
     for u in users:
-        for i in range(randint(1, 10)):
+        # Give each user 1-3 random reviews
+        for i in range(randint(1, 3)):
             r = Review(
-                score=randint(0, 10),
+                score=randint(1, 10),
                 comment=fake.sentence(),
                 user=u,
-                game=rc(games))
-            reviews.append(r)
+                game=rc(games)
+            )
+            # Use try/except because our unique constraint might 
+            # prevent duplicate user/game reviews during random seeding
+            try:
+                db.session.add(r)
+                db.session.commit()
+            except:
+                db.session.rollback()
 
-    db.session.add_all(reviews)
-
-    for g in games:
-        r = rc(reviews)
-        g.review = r
-        reviews.remove(r)
-
-    db.session.commit()
+    print("Done seeding!")
